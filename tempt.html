@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Image Converter</title>
+  </head>
+  <body>
+    <h1>Image Converter</h1>
+    <div>
+      <input type="file" id="file-input" accept="image/*">
+      <button id="convert-btn">Convert</button>
+    </div>
+    <div>
+      <img id="original-img">
+      <img id="converted-img">
+    </div>
+    <script>
+      const fileInput = document.getElementById('file-input');
+      const originalImg = document.getElementById('original-img');
+      const convertedImg = document.getElementById('converted-img');
+      const convertBtn = document.getElementById('convert-btn');
+
+      fileInput.addEventListener('change', () => {
+        const file = fileInput.files[0];
+        const reader = new FileReader();
+        reader.readAsDataURL(file);
+        reader.onloadend = () => {
+          originalImg.src = reader.result;
+        };
+      });
+
+      convertBtn.addEventListener('click', () => {
+        const file = fileInput.files[0];
+        const reader = new FileReader();
+        reader.readAsDataURL(file);
+        reader.onloadend = () => {
+          const img = new Image();
+          img.src = reader.result;
+          img.onload = () => {
+            const canvas = document.createElement('canvas');
+            canvas.width = img.width;
+            canvas.height = img.height;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(img, 0, 0);
+            const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            for (let i = 0; i < imageData.data.length; i += 4) {
+              const gray = imageData.data[i] * 0.299 + imageData.data[i + 1] * 0.587 + imageData.data[i + 2] * 0.114;
+              imageData.data[i] = gray;
+              imageData.data[i + 1] = gray;
+              imageData.data[i + 2] = gray;
+            }
+            ctx.putImageData(imageData, 0, 0);
+            const convertedUrl = canvas.toDataURL(file.type);
+            convertedImg.src = convertedUrl;
+
+            // Save the converted image with "converted" added to the file name
+            const fileNameParts = file.name.split('.');
+            const fileName = fileNameParts.slice(0, fileNameParts.length - 1).join('.');
+            const extension = fileNameParts[fileNameParts.length - 1];
+            const convertedFileName = `${fileName}_converted.${extension}`;
+            download(convertedUrl, convertedFileName, file.type);
+          };
+        };
+      });
+
+      function download(dataUrl, fileName, mimeType) {
+        const link = document.createElement('a');
+        link.href = dataUrl;
+        link.download = fileName;
+        link.type = mimeType;
+        link.click();
+      }
+    </script>
+  </body>
+</html>
